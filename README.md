@@ -24,6 +24,23 @@ docker compose up -d --build
 http://localhost:8338
 ```
 
+### GitHub Container Registry
+
+The pre-built image is published to GitHub Container Registry via GitHub Actions on every push to the `main` branch:
+
+```yaml
+image: ghcr.io/YOUR_USERNAME/task-picker:latest
+```
+
+To enable this for public use:
+
+1. Go to your repository's **Settings > Packages** and set the visibility to **public**
+2. Anyone can then pull the image without authentication:
+   ```bash
+   docker pull ghcr.io/YOUR_USERNAME/task-picker:latest
+   ```
+3. For unauthenticated users to pull images, the package **must be public** (set in repository settings)
+
 ### Reset all data
 
 ```bash
@@ -156,9 +173,7 @@ task-picker/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .dockerignore
-├── .gitignore
-├── shapewave.md           # Shape wave reference
-└── shimmerbutton.md       # Glass button reference
+└── .gitignore
 ```
 
 ## Seeding
