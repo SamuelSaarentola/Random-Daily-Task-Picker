@@ -1,26 +1,20 @@
 # Mitä tänään tekisi? — Random Daily Task Picker
 
-A local web application for picking random daily tasks with cooldown logic. Built with FastAPI, SQLite, and vanilla JS.
+A local web app for picking random daily tasks with cooldowns, skips, and user suggestions. Built with FastAPI, SQLite, and vanilla JS.
 
-## URL
+## Quick Start
 
-**http://192.168.50.10:8338/**
-
-## Quick start
-
-### 1. Build the Docker image
-
-```bash
-docker compose build
-```
-
-### 2. Start the container
+### 1. Start
 
 ```bash
 docker compose up -d
 ```
 
-The app is now available at **http://192.168.50.10:8338/**.
+### 2. Open
+
+```
+http://localhost:8338
+```
 
 ### Reset all data
 
@@ -30,40 +24,53 @@ docker compose down -v && docker compose up -d
 
 ## Stack
 
-| Layer    | Technology                          |
-|----------|-------------------------------------|
-| Backend  | Python 3.12, FastAPI, Uvicorn       |
-| Database | SQLite (`/data/tasks.db`)           |
-| ORM      | SQLAlchemy 2.0 (sync)               |
-| Frontend | Single `index.html` — vanilla JS/CSS |
-| Runtime  | Docker, host port **8338** → 8000   |
+| Layer    | Technology                        |
+|----------|-----------------------------------|
+| Backend  | Python 3.12, FastAPI, Uvicorn     |
+| Database | SQLite (persisted via Docker volume) |
+| ORM      | SQLAlchemy 2.0 (sync)             |
+| Frontend | Vanilla HTML/JS/CSS (no framework) |
+| Cursor   | Three.js TubesCursor (CDN)        |
+| Runtime  | Docker, host port **8338** → 8000 |
 
-## Default tasks
+## Features
 
-| Task                | Cooldown |
-|---------------------|----------|
-| Pokemon Violet      | 2 days   |
-| Piirtämistä         | 1 day    |
-| Värityskirja        | 1 day    |
-| Minecraft           | 2 days   |
-| YouTube             | 1 day    |
-| Näppäinharjoittelua | 1 day    |
-| Lukemista           | 1 day    |
-| Ponileikki          | 1 day    |
+### Home page (`/`)
 
-## API endpoints
+- **Glass shimmer button** — animated gradient border, glassmorphism background, sweep shine
+- **Shape wave background** — subtle grid of colorful shapes, ripples outward on button press
+- **TubesCursor** — 3D neon cursor trail (Three.js, loaded from CDN)
+- **Floating task names** — random active task names animate in/out from a 5×5 grid, one at a time every 7s
+- **Skip system** — 3 skips per day (stored in `localStorage`), shown as "Ohita X/3" button with red glass border
+- **Task suggestions** — type and press Enter to suggest a new task (saved as inactive, parent enables on todo page)
+- **No-tasks state** — "Kaikki tehtävät tehty / lisää tulossa huomenna" when all are on cooldown
 
-| Method   | Endpoint                  | Description                           |
-|----------|---------------------------|---------------------------------------|
-| `GET`    | `/api/tasks`              | List all tasks (with cooldown status) |
-| `GET`    | `/api/tasks/random`       | Random available task (200 or 204)    |
-| `POST`   | `/api/tasks`              | Create task — body: `{name, cooldown_days}` |
-| `PUT`    | `/api/tasks/{id}`         | Update task — body: `{name?, cooldown_days?, active?}` |
-| `DELETE` | `/api/tasks/{id}`         | Delete task                           |
-| `POST`   | `/api/tasks/{id}/done`    | Mark task as done (sets `last_done`)  |
-| `POST`   | `/api/tasks/reorder`      | Bulk reorder — body: `[{id, sort_order}, ...]` |
+### Todo page (`/todo`)
 
-### Task response schema
+- Full task management: add, edit, reorder, delete, toggle active, set cooldown
+- Reset cooldown button (↺) per task
+- Skip recharge button (⟳ Lataa ohitukset) — resets daily skip counter immediately
+- No cursor animation on this page
+
+## API Endpoints
+
+### Tasks
+
+| Method   | Endpoint                  | Description |
+|----------|---------------------------|-------------|
+| `GET`    | `/api/tasks`              | All tasks with cooldown status |
+| `GET`    | `/api/tasks/random`       | Random available task (200 or 204) |
+| `GET`    | `/api/tasks/active/names` | Active task names (for floating animation) |
+| `GET`    | `/api/tasks/available/count` | Count of currently available tasks |
+| `POST`   | `/api/tasks`              | Create task `{name, cooldown_days}` |
+| `PUT`    | `/api/tasks/{id}`         | Update task `{name?, cooldown_days?, active?}` |
+| `DELETE` | `/api/tasks/{id}`         | Delete task |
+| `POST`   | `/api/tasks/{id}/done`    | Mark done (sets `last_done`) |
+| `POST`   | `/api/tasks/{id}/reset-cooldown` | Clear cooldown |
+| `POST`   | `/api/tasks/reorder`      | Bulk reorder `[{id, sort_order}, ...]` |
+| `POST`   | `/api/tasks/suggest`      | Suggest task `{name}` (saved inactive) |
+
+### Task response
 
 ```json
 {
@@ -78,29 +85,20 @@ docker compose down -v && docker compose up -d
 }
 ```
 
-## Cooldown logic
+## Cooldown Logic
 
 A task is **available** when:
 - `active = true`
 - AND (`last_done` is `NULL` OR `last_done + cooldown_days <= now`)
 
-If no tasks are available, the UI shows *"Kaikki tehtävät jäähtyvät"*.
+## Skip System
 
-## Frontend features
+- 3 skips per calendar day, stored in `localStorage` under key `taskpicker_skips`
+- Format: `{ date: "YYYY-MM-DD", used: 0 }` — auto-resets each new day
+- "Lataa ohitukset" on `/todo` resets the counter immediately
+- Skipping marks the task as done (clears cooldown) but consumes a skip credit
 
-- **Big "Arvo tehtävä!" button** — picks a random available task
-- **"✓ Tehty!" button** — marks task done, auto-picks a new one after 600 ms
-- **Edit panel** (⚙ gear icon, top-right):
-  - Drag-and-drop reorder (☰ handle)
-  - Inline name editing (`contenteditable`)
-  - Cooldown toggle: `1 pv` / `2 pv`
-  - Active/inactive toggle
-  - Delete with confirmation
-  - Add new task at the bottom
-  - Cooldown pill: `jäähtymässä — vapautuu 8.4.`
-- **Responsive**: full-width edit panel on screens < 480px
-
-## Project structure
+## Project Structure
 
 ```
 task-picker/
@@ -110,9 +108,16 @@ task-picker/
 │   ├── database.py        # Engine, session, Base
 │   └── requirements.txt
 ├── frontend/
-│   └── index.html         # Complete single-file UI
-├── data/                  # SQLite DB at runtime
+│   ├── index.html         # Home page (picker + effects)
+│   └── todo.html          # Task management page
 ├── Dockerfile
 ├── docker-compose.yml
-└── .dockerignore
+├── .dockerignore
+├── .gitignore
+├── shapewave.md           # Shape wave reference
+└── shimmerbutton.md       # Glass button reference
 ```
+
+## Seeding
+
+On first startup, 8 default tasks are seeded. User-suggested tasks are added with `active: false` and must be enabled via the todo page.
