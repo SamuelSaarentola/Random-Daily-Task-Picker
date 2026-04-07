@@ -6,7 +6,7 @@
 <title>Tehtävälista</title>
 <style>
 :root {
-  --bg: #1a1a2e;
+  --bg: #080808;
   --surface: #16213e;
   --card: #0f3460;
   --accent: #e94560;
@@ -27,7 +27,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Header bar */
+/* ====== HEADER ====== */
 .header-bar {
   display: flex;
   align-items: center;
@@ -39,14 +39,10 @@ body {
   top: 0;
   z-index: 10;
 }
-
 .header-bar h1 {
   font-size: 1.5rem;
-  position: static;
   margin: 0;
-  padding: 0;
 }
-
 .back-link {
   color: var(--muted);
   text-decoration: none;
@@ -55,6 +51,90 @@ body {
 }
 .back-link:hover { color: var(--text); }
 
+/* Logout button */
+#logout-btn {
+  display: none;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s, transform 0.15s;
+  gap: 4px;
+  align-items: center;
+}
+#logout-btn.visible { display: flex; }
+#logout-btn:hover { opacity: 0.85; transform: scale(1.05); }
+
+/* ====== LOGIN SCREEN ====== */
+#login-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 24px;
+}
+#login-screen.visible { display: flex; }
+
+#login-screen .login-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 300px;
+}
+#login-screen h2 {
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+#login-screen input {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#login-screen input:focus { border-color: var(--accent); }
+#login-screen input::placeholder { color: var(--muted); }
+#login-screen button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+#login-screen button:hover { opacity: 0.85; }
+#login-error {
+  color: var(--accent);
+  text-align: center;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#login-error.visible { opacity: 1; }
+
+/* ====== APP CONTENT (hidden until auth) ====== */
+#app-content {
+  display: none;
+}
+#app-content.visible { display: block; }
+
+/* Recharge button */
 .recharge-btn {
   background: rgba(78, 204, 163, 0.15);
   border: 1px solid var(--success);
@@ -73,26 +153,22 @@ body {
 .recharge-btn:active { transform: scale(0.95); }
 
 #recharge-feedback {
-  position: fixed;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
   color: var(--success);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   opacity: 0;
   transition: opacity 0.3s;
-  z-index: 100;
   pointer-events: none;
+  text-align: center;
+  margin-top: 4px;
 }
 #recharge-feedback.visible { opacity: 1; }
 
-/* Task list container */
+/* Task list */
 #task-list {
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
 }
-
 .task-row {
   display: flex;
   align-items: flex-start;
@@ -105,7 +181,6 @@ body {
 }
 .task-row.inactive { opacity: 0.4; }
 .task-row.dragging { opacity: 0.5; background: var(--accent); }
-
 .task-row .drag-handle {
   cursor: grab;
   font-size: 1.2rem;
@@ -113,7 +188,6 @@ body {
   flex-shrink: 0;
   margin-top: 4px;
 }
-
 .task-row .task-info {
   flex: 1;
   min-width: 0;
@@ -121,7 +195,6 @@ body {
   flex-direction: column;
   gap: 4px;
 }
-
 .task-row .task-name-edit {
   font-size: 1rem;
   outline: none;
@@ -132,7 +205,6 @@ body {
   min-width: 0;
 }
 .task-row .task-name-edit:focus { background: rgba(255,255,255,0.07); }
-
 .task-row .task-controls {
   display: flex;
   align-items: center;
@@ -142,21 +214,19 @@ body {
   justify-content: flex-end;
 }
 
+/* Cooldown pill — increased font size */
 .cooldown-pill {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   background: var(--accent2);
   color: #1a1a2e;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 20px;
   white-space: nowrap;
   align-self: flex-start;
+  font-weight: 500;
 }
 
-.cooldown-btns {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
+.cooldown-btns { display: flex; gap: 4px; flex-shrink: 0; }
 .cooldown-btns button {
   background: rgba(255,255,255,0.08);
   border: none;
@@ -171,7 +241,6 @@ body {
   color: #1a1a2e;
   font-weight: 600;
 }
-
 .reset-btn {
   background: rgba(78, 204, 163, 0.2);
   border: none;
@@ -183,14 +252,7 @@ body {
   transition: background 0.2s;
 }
 .reset-btn:hover { background: rgba(78, 204, 163, 0.35); }
-
-.task-row .toggle-active {
-  flex-shrink: 0;
-  cursor: pointer;
-  width: 20px;
-  height: 20px;
-}
-
+.task-row .toggle-active { flex-shrink: 0; cursor: pointer; width: 20px; height: 20px; }
 .task-row .delete-btn {
   background: none;
   border: none;
@@ -240,18 +302,36 @@ body {
 </head>
 <body>
 
-<div class="header-bar">
-  <a href="/" class="back-link">← Takaisin</a>
-  <h1>Tehtävälista</h1>
-  <button class="recharge-btn" id="recharge-btn">⟳ Lataa ohitukset</button>
+<!-- Login screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>Tehtävälista</h2>
+    <input type="text" id="login-user" placeholder="Tunnus" autocomplete="username" />
+    <input type="password" id="login-pass" placeholder="Salasana" autocomplete="current-password" />
+    <button id="login-submit">Kirjaudu</button>
+    <div id="login-error">Väärä tunnus tai salasana</div>
+  </div>
 </div>
-<div id="recharge-feedback">✓ Ohitukset ladattu (3/3)</div>
 
-<div id="task-list"></div>
+<!-- Main app (hidden until authenticated) -->
+<div id="app-content">
+  <div class="header-bar">
+    <a href="/" class="back-link">← Takaisin</a>
+    <h1>Tehtävälista</h1>
+    <button id="logout-btn">🔒 Ulos</button>
+  </div>
 
-<div id="add-task-row">
-  <input type="text" id="new-task-input" placeholder="Uusi tehtävä...">
-  <button id="add-task-btn">+ Lisää</button>
+  <div id="task-list"></div>
+
+  <div id="add-task-row">
+    <input type="text" id="new-task-input" placeholder="Uusi tehtävä...">
+    <button id="add-task-btn">+ Lisää</button>
+  </div>
+
+  <div style="max-width: 600px; margin: 0 auto; padding: 12px 20px 20px; text-align: center;">
+    <button class="recharge-btn" id="recharge-btn">⟳ Nollaa ohitukset</button>
+    <div id="recharge-feedback">✓ Ohitukset nollattu (3/3)</div>
+  </div>
 </div>
 
 <script type="module">
@@ -283,32 +363,81 @@ async function apiDelete(path) {
   return fetch(API + path, { method: 'DELETE' });
 }
 
+// --- Auth ---
+const loginScreen = document.getElementById('login-screen');
+const appContent = document.getElementById('app-content');
+const logoutBtn = document.getElementById('logout-btn');
+const loginError = document.getElementById('login-error');
+const loginInput = document.getElementById('login-user');
+const passInput = document.getElementById('login-pass');
+const loginSubmit = document.getElementById('login-submit');
+
+async function checkAuth() {
+  try {
+    const data = await apiGet('/auth/check');
+    if (data && data.authenticated) {
+      loginScreen.classList.remove('visible');
+      appContent.classList.add('visible');
+      logoutBtn.classList.add('visible');
+      loadTasks();
+    } else {
+      loginScreen.classList.add('visible');
+      appContent.classList.remove('visible');
+      logoutBtn.classList.remove('visible');
+    }
+  } catch(e) {
+    loginScreen.classList.add('visible');
+    appContent.classList.remove('visible');
+  }
+}
+
+loginSubmit.addEventListener('click', async () => {
+  const username = loginInput.value.trim();
+  const password = passInput.value;
+  if (!username || !password) return;
+  loginSubmit.disabled = true;
+  const res = await apiPost('/auth/login', { username, password });
+  loginSubmit.disabled = false;
+  if (res.ok) {
+    loginError.classList.remove('visible');
+    loginInput.value = '';
+    passInput.value = '';
+    checkAuth();
+  } else {
+    loginError.classList.add('visible');
+  }
+});
+
+passInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') loginSubmit.click();
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await apiPost('/auth/logout', {});
+  checkAuth();
+});
+
 // --- Load tasks ---
 async function loadTasks() {
   tasks = await apiGet('/tasks') || [];
   renderTaskList();
 }
 
-// --- Render task list ---
+// --- Render ---
 function renderTaskList() {
   const list = document.getElementById('task-list');
   list.innerHTML = '';
   tasks.sort((a, b) => a.sort_order - b.sort_order);
-
   tasks.forEach(task => {
     const row = document.createElement('div');
     row.className = 'task-row' + (task.active ? '' : ' inactive');
     row.dataset.id = task.id;
     row.draggable = true;
-
     let cooldownPill = '';
     if (!task.available && task.available_at) {
       const dt = new Date(task.available_at + 'Z');
-      const day = dt.getUTCDate();
-      const month = dt.getUTCMonth() + 1;
-      cooldownPill = `<span class="cooldown-pill">jäähtymässä — vapautuu ${day}.${month}.</span>`;
+      cooldownPill = `<span class="cooldown-pill">jäähtymässä — vapautuu ${dt.getUTCDate()}.${dt.getUTCMonth()+1}.</span>`;
     }
-
     row.innerHTML = `
       <span class="drag-handle">☰</span>
       <div class="task-info">
@@ -317,91 +446,62 @@ function renderTaskList() {
       </div>
       <span class="task-controls">
         <span class="cooldown-btns">
-          <button data-days="1" class="${task.cooldown_days === 1 ? 'active' : ''}">1 pv</button>
-          <button data-days="2" class="${task.cooldown_days === 2 ? 'active' : ''}">2 pv</button>
+          <button data-days="1" class="${task.cooldown_days===1?'active':''}">1 pv</button>
+          <button data-days="2" class="${task.cooldown_days===2?'active':''}">2 pv</button>
         </span>
         <button class="reset-btn" title="Nollaa jäähtymä">↺</button>
-        <input type="checkbox" class="toggle-active" ${task.active ? 'checked' : ''}>
+        <input type="checkbox" class="toggle-active" ${task.active?'checked':''}>
         <button class="delete-btn">🗑</button>
-      </span>
-    `;
-
-    row.addEventListener('dragstart', (e) => {
-      draggedId = task.id;
-      row.classList.add('dragging');
-    });
-    row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      draggedId = null;
-    });
-    row.addEventListener('dragover', (e) => {
-      e.preventDefault();
-    });
-    row.addEventListener('drop', async (e) => {
+      </span>`;
+    row.addEventListener('dragstart', () => { draggedId = task.id; row.classList.add('dragging'); });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); draggedId = null; });
+    row.addEventListener('dragover', e => e.preventDefault());
+    row.addEventListener('drop', async e => {
       e.preventDefault();
       const targetId = parseInt(row.dataset.id);
       if (draggedId === null || draggedId === targetId) return;
-
       const sorted = [...tasks].sort((a, b) => a.sort_order - b.sort_order);
       const dragIdx = sorted.findIndex(t => t.id === draggedId);
       const targetIdx = sorted.findIndex(t => t.id === targetId);
       if (dragIdx < 0 || targetIdx < 0) return;
-
       const [moved] = sorted.splice(dragIdx, 1);
       sorted.splice(targetIdx, 0, moved);
-
-      const reorderBody = sorted.map((t, i) => ({ id: t.id, sort_order: i }));
       await fetch(API + '/tasks/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reorderBody),
+        body: JSON.stringify(sorted.map((t, i) => ({ id: t.id, sort_order: i }))),
       });
       await loadTasks();
     });
-
     const nameEl = row.querySelector('.task-name-edit');
     nameEl.addEventListener('blur', async () => {
       const newName = nameEl.textContent.trim();
       if (newName && newName !== task.name) {
         await apiPut(`/tasks/${task.id}`, { name: newName });
         await loadTasks();
-      } else {
-        nameEl.textContent = task.name;
-      }
+      } else { nameEl.textContent = task.name; }
     });
-    nameEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        nameEl.blur();
-      }
-    });
-
+    nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); } });
     row.querySelectorAll('.cooldown-btns button').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const days = parseInt(btn.dataset.days);
-        await apiPut(`/tasks/${task.id}`, { cooldown_days: days });
+        await apiPut(`/tasks/${task.id}`, { cooldown_days: parseInt(btn.dataset.days) });
         await loadTasks();
       });
     });
-
-    // Reset cooldown button
     row.querySelector('.reset-btn').addEventListener('click', async () => {
       await apiPost(`/tasks/${task.id}/reset-cooldown`);
       await loadTasks();
     });
-
-    row.querySelector('.toggle-active').addEventListener('change', async (e) => {
+    row.querySelector('.toggle-active').addEventListener('change', async e => {
       await apiPut(`/tasks/${task.id}`, { active: e.target.checked });
       await loadTasks();
     });
-
     row.querySelector('.delete-btn').addEventListener('click', async () => {
       if (confirm(`Poistetaanko "${task.name}"?`)) {
         await apiDelete(`/tasks/${task.id}`);
         await loadTasks();
       }
     });
-
     list.appendChild(row);
   });
 }
@@ -415,7 +515,6 @@ function escapeHtml(str) {
 // --- Add task ---
 const addInput = document.getElementById('new-task-input');
 const addBtn = document.getElementById('add-task-btn');
-
 async function addTask() {
   const name = addInput.value.trim();
   if (!name) return;
@@ -423,26 +522,20 @@ async function addTask() {
   addInput.value = '';
   await loadTasks();
 }
-
 addBtn.addEventListener('click', addTask);
-addInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); addTask(); }
-});
+addInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } });
 
-// --- Load tasks on start ---
-loadTasks();
-
-// --- Recharge skips (reset localStorage counter) ---
+// --- Recharge skips ---
 const rechargeBtn = document.getElementById('recharge-btn');
 const rechargeFeedback = document.getElementById('recharge-feedback');
-
 rechargeBtn.addEventListener('click', () => {
-  const SKIP_KEY = 'taskpicker_skips';
-  const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem(SKIP_KEY, JSON.stringify({ date: today, used: 0 }));
+  localStorage.setItem('taskpicker_skips', JSON.stringify({ date: new Date().toISOString().slice(0,10), used: 0 }));
   rechargeFeedback.classList.add('visible');
   setTimeout(() => rechargeFeedback.classList.remove('visible'), 2000);
 });
+
+// --- Init ---
+checkAuth();
 </script>
 </body>
 </html>

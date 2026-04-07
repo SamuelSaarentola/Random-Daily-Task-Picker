@@ -4,13 +4,21 @@ A local web app for picking random daily tasks with cooldowns, skips, and user s
 
 ## Quick Start
 
-### 1. Start
+### Option 1: Pre-built image (easiest)
+
+Edit `docker-compose.yml` — uncomment the `image:` line and comment out `build: .`, then:
 
 ```bash
 docker compose up -d
 ```
 
-### 2. Open
+### Option 2: Build from source
+
+```bash
+docker compose up -d --build
+```
+
+### Open
 
 ```
 http://localhost:8338
@@ -22,6 +30,23 @@ http://localhost:8338
 docker compose down -v && docker compose up -d
 ```
 
+## Authentication
+
+The `/todo` management page is protected by cookie-based session auth. Default credentials are set via environment variables in `docker-compose.yml`:
+
+```yaml
+environment:
+  - AUTH_USERNAME=admin
+  - AUTH_PASSWORD=admin
+  - AUTH_SECRET=change-this-to-a-long-random-secret-key
+```
+
+- **Home page (`/`)** — fully public, no login required
+- **Todo page (`/todo`)** — requires login (Tunnus/Salasana)
+- A subtle 🔒 lock icon in the top-right corner of the home page links to `/todo`
+- Change `AUTH_USERNAME` and `AUTH_PASSWORD` in production
+- Generate a strong `AUTH_SECRET` (any long random string)
+
 ## Stack
 
 | Layer    | Technology                        |
@@ -31,6 +56,7 @@ docker compose down -v && docker compose up -d
 | ORM      | SQLAlchemy 2.0 (sync)             |
 | Frontend | Vanilla HTML/JS/CSS (no framework) |
 | Cursor   | Three.js TubesCursor (CDN)        |
+| Auth     | Cookie-based sessions (Starlette) |
 | Runtime  | Docker, host port **8338** → 8000 |
 
 ## Features
@@ -38,44 +64,61 @@ docker compose down -v && docker compose up -d
 ### Home page (`/`)
 
 - **Glass shimmer button** — animated gradient border, glassmorphism background, sweep shine
-- **Shape wave background** — subtle grid of colorful shapes, ripples outward on button press
-- **TubesCursor** — 3D neon cursor trail (Three.js, loaded from CDN)
+- **Shape wave background** — subtle grid of colorful shapes at low opacity, ripples outward on button press
+- **TubesCursor** — 3D neon cursor trail (Three.js, CDN)
 - **Floating task names** — random active task names animate in/out from a 5×5 grid, one at a time every 7s
-- **Skip system** — 3 skips per day (stored in `localStorage`), shown as "Ohita X/3" button with red glass border
-- **Task suggestions** — type and press Enter to suggest a new task (saved as inactive, parent enables on todo page)
-- **No-tasks state** — "Kaikki tehtävät tehty / lisää tulossa huomenna" when all are on cooldown
+- **Skip system** — 3 skips per day (`localStorage`), "Ohita X/3" button with red glass border
+- **Task suggestions** — type + Enter to suggest (saved inactive, parent enables on todo page)
+- **Glass feedback popup** — green glass button appears on suggestion with shape wave ripple
+- **No-tasks state** — "Kaikki tehtävät tehty / lisää tulossa huomenna"
 
 ### Todo page (`/todo`)
 
+- Login screen with Tunnus/Salasana/Kirjaudu
 - Full task management: add, edit, reorder, delete, toggle active, set cooldown
-- Reset cooldown button (↺) per task
-- Skip recharge button (⟳ Lataa ohitukset) — resets daily skip counter immediately
+- Reset cooldown (↺) per task
+- Skip reset button (⟳ Nollaa ohitukset) with inline feedback
+- Red logout button (🔒 Ulos) in header when authenticated
 - No cursor animation on this page
 
 ## API Endpoints
 
-### Tasks
+### Public (no auth)
 
 | Method   | Endpoint                  | Description |
 |----------|---------------------------|-------------|
 | `GET`    | `/api/tasks`              | All tasks with cooldown status |
 | `GET`    | `/api/tasks/random`       | Random available task (200 or 204) |
-| `GET`    | `/api/tasks/active/names` | Active task names (for floating animation) |
-| `GET`    | `/api/tasks/available/count` | Count of currently available tasks |
-| `POST`   | `/api/tasks`              | Create task `{name, cooldown_days}` |
-| `PUT`    | `/api/tasks/{id}`         | Update task `{name?, cooldown_days?, active?}` |
-| `DELETE` | `/api/tasks/{id}`         | Delete task |
+| `GET`    | `/api/tasks/active/names` | Active task names |
+| `GET`    | `/api/tasks/available/count` | Available task count |
 | `POST`   | `/api/tasks/{id}/done`    | Mark done (sets `last_done`) |
-| `POST`   | `/api/tasks/{id}/reset-cooldown` | Clear cooldown |
-| `POST`   | `/api/tasks/reorder`      | Bulk reorder `[{id, sort_order}, ...]` |
 | `POST`   | `/api/tasks/suggest`      | Suggest task `{name}` (saved inactive) |
+
+### Auth required
+
+| Method   | Endpoint                  | Description |
+|----------|---------------------------|-------------|
+| `GET`    | `/todo`                   | Task management page |
+| `POST`   | `/api/tasks`              | Create task |
+| `PUT`    | `/api/tasks/{id}`         | Update task |
+| `DELETE` | `/api/tasks/{id}`         | Delete task |
+| `POST`   | `/api/tasks/reorder`      | Bulk reorder |
+| `POST`   | `/api/tasks/{id}/reset-cooldown` | Clear cooldown |
+
+### Auth endpoints
+
+| Method   | Endpoint            | Description |
+|----------|---------------------|-------------|
+| `POST`   | `/api/auth/login`   | Login `{username, password}` |
+| `POST`   | `/api/auth/logout`  | Logout |
+| `GET`    | `/api/auth/check`   | Check auth status |
 
 ### Task response
 
 ```json
 {
   "id": 1,
-  "name": "Pokemon Violet",
+  "name": "Play a game",
   "cooldown_days": 2,
   "last_done": "2024-01-01T12:00:00",
   "sort_order": 0,
@@ -93,23 +136,23 @@ A task is **available** when:
 
 ## Skip System
 
-- 3 skips per calendar day, stored in `localStorage` under key `taskpicker_skips`
-- Format: `{ date: "YYYY-MM-DD", used: 0 }` — auto-resets each new day
-- "Lataa ohitukset" on `/todo` resets the counter immediately
-- Skipping marks the task as done (clears cooldown) but consumes a skip credit
+- 3 skips per calendar day, stored in `localStorage` under `taskpicker_skips`
+- Format: `{ date: "YYYY-MM-DD", used: 0 }` — auto-resets daily
+- "Nollaa ohitukset" on `/todo` resets immediately
+- Skipping marks task done but consumes a skip credit
 
 ## Project Structure
 
 ```
 task-picker/
 ├── backend/
-│   ├── main.py            # FastAPI app, endpoints, seeding
+│   ├── main.py            # FastAPI app, endpoints, auth, seeding
 │   ├── models.py          # SQLAlchemy ORM + Pydantic schemas
 │   ├── database.py        # Engine, session, Base
 │   └── requirements.txt
 ├── frontend/
 │   ├── index.html         # Home page (picker + effects)
-│   └── todo.html          # Task management page
+│   └── todo.html          # Task management (auth protected)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .dockerignore

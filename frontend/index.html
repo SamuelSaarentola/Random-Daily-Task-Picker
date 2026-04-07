@@ -69,6 +69,21 @@ h1 {
   pointer-events: none;
 }
 
+/* Lock icon link to /todo */
+#lock-link {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 5;
+  color: #fff;
+  font-size: 1.3rem;
+  text-decoration: none;
+  opacity: 0.05;
+  transition: opacity 0.3s;
+  line-height: 1;
+}
+#lock-link:hover { opacity: 0.4; }
+
 /* ====== GLASS BUTTON BASE ====== */
 .glass-btn {
   position: relative;
@@ -484,6 +499,8 @@ h1 {
 
 <canvas id="cursor-canvas"></canvas>
 <canvas id="shape-canvas"></canvas>
+
+<a id="lock-link" href="/todo" title="Tehtävälista">🔒</a>
 
 <h1>Mitä tänään tekisi?</h1>
 

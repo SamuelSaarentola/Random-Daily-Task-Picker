@@ -1,11 +1,23 @@
 services:
   app:
+    # Option 1: Use pre-built image (easiest)
+    # image: ghcr.io/YOUR_USERNAME/task-picker:latest
+    # Uncomment the line above and comment out "build: ." to use a pre-built image
+
+    # Option 2: Build from source
     build: .
+
     ports:
       - "8338:8000"
     volumes:
       - taskdata:/data
     restart: unless-stopped
+    environment:
+      # Auth credentials for /todo management page
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=admin
+      # Change this to a long random string in production
+      - AUTH_SECRET=change-this-to-a-long-random-secret-key
 
 volumes:
   taskdata:
