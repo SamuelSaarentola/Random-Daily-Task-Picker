@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tehtävälista</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --card: #0f3460;
+  --accent: #e94560;
+  --accent2: #f5a623;
+  --text: #eaeaea;
+  --muted: #7a7a9d;
+  --success: #4ecca3;
+  --radius: 14px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Header bar */
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-bar h1 {
+  font-size: 1.5rem;
+  position: static;
+  margin: 0;
+  padding: 0;
+}
+
+.back-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+.back-link:hover { color: var(--text); }
+
+.recharge-btn {
+  background: rgba(78, 204, 163, 0.15);
+  border: 1px solid var(--success);
+  color: var(--success);
+  border-radius: 9999px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.15s;
+}
+.recharge-btn:hover {
+  background: rgba(78, 204, 163, 0.3);
+  transform: scale(1.05);
+}
+.recharge-btn:active { transform: scale(0.95); }
+
+#recharge-feedback {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--success);
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 100;
+  pointer-events: none;
+}
+#recharge-feedback.visible { opacity: 1; }
+
+/* Task list container */
+#task-list {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: background 0.2s, opacity 0.2s;
+}
+.task-row.inactive { opacity: 0.4; }
+.task-row.dragging { opacity: 0.5; background: var(--accent); }
+
+.task-row .drag-handle {
+  cursor: grab;
+  font-size: 1.2rem;
+  user-select: none;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.task-row .task-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-row .task-name-edit {
+  font-size: 1rem;
+  outline: none;
+  border-radius: 4px;
+  padding: 4px 6px;
+  background: transparent;
+  color: var(--text);
+  min-width: 0;
+}
+.task-row .task-name-edit:focus { background: rgba(255,255,255,0.07); }
+
+.task-row .task-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cooldown-pill {
+  font-size: 0.75rem;
+  background: var(--accent2);
+  color: #1a1a2e;
+  padding: 2px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.cooldown-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.cooldown-btns button {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.cooldown-btns button.active {
+  background: var(--accent2);
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+.reset-btn {
+  background: rgba(78, 204, 163, 0.2);
+  border: none;
+  color: var(--success);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.reset-btn:hover { background: rgba(78, 204, 163, 0.35); }
+
+.task-row .toggle-active {
+  flex-shrink: 0;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+}
+
+.task-row .delete-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.task-row .delete-btn:hover { opacity: 1; }
+
+#add-task-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--card);
+  max-width: 600px;
+  margin: 0 auto;
+}
+#add-task-row input {
+  flex: 1;
+  background: var(--card);
+  border: none;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 1rem;
+}
+#add-task-row input::placeholder { color: var(--muted); }
+#add-task-row button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .task-row { flex-wrap: wrap; }
+  .task-row .task-controls { width: 100%; justify-content: flex-end; margin-top: 4px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+  <a href="/" class="back-link">← Takaisin</a>
+  <h1>Tehtävälista</h1>
+  <button class="recharge-btn" id="recharge-btn">⟳ Lataa ohitukset</button>
+</div>
+<div id="recharge-feedback">✓ Ohitukset ladattu (3/3)</div>
+
+<div id="task-list"></div>
+
+<div id="add-task-row">
+  <input type="text" id="new-task-input" placeholder="Uusi tehtävä...">
+  <button id="add-task-btn">+ Lisää</button>
+</div>
+
+<script type="module">
+const API = '/api';
+let tasks = [];
+let draggedId = null;
+
+// --- Fetch helpers ---
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  if (res.status === 204) return null;
+  return res.json();
+}
+async function apiPost(path, body) {
+  return fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+async function apiPut(path, body) {
+  return fetch(API + path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+async function apiDelete(path) {
+  return fetch(API + path, { method: 'DELETE' });
+}
+
+// --- Load tasks ---
+async function loadTasks() {
+  tasks = await apiGet('/tasks') || [];
+  renderTaskList();
+}
+
+// --- Render task list ---
+function renderTaskList() {
+  const list = document.getElementById('task-list');
+  list.innerHTML = '';
+  tasks.sort((a, b) => a.sort_order - b.sort_order);
+
+  tasks.forEach(task => {
+    const row = document.createElement('div');
+    row.className = 'task-row' + (task.active ? '' : ' inactive');
+    row.dataset.id = task.id;
+    row.draggable = true;
+
+    let cooldownPill = '';
+    if (!task.available && task.available_at) {
+      const dt = new Date(task.available_at + 'Z');
+      const day = dt.getUTCDate();
+      const month = dt.getUTCMonth() + 1;
+      cooldownPill = `<span class="cooldown-pill">jäähtymässä — vapautuu ${day}.${month}.</span>`;
+    }
+
+    row.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <div class="task-info">
+        <span class="task-name-edit" contenteditable="true">${escapeHtml(task.name)}</span>
+        ${cooldownPill}
+      </div>
+      <span class="task-controls">
+        <span class="cooldown-btns">
+          <button data-days="1" class="${task.cooldown_days === 1 ? 'active' : ''}">1 pv</button>
+          <button data-days="2" class="${task.cooldown_days === 2 ? 'active' : ''}">2 pv</button>
+        </span>
+        <button class="reset-btn" title="Nollaa jäähtymä">↺</button>
+        <input type="checkbox" class="toggle-active" ${task.active ? 'checked' : ''}>
+        <button class="delete-btn">🗑</button>
+      </span>
+    `;
+
+    row.addEventListener('dragstart', (e) => {
+      draggedId = task.id;
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      draggedId = null;
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    row.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const targetId = parseInt(row.dataset.id);
+      if (draggedId === null || draggedId === targetId) return;
+
+      const sorted = [...tasks].sort((a, b) => a.sort_order - b.sort_order);
+      const dragIdx = sorted.findIndex(t => t.id === draggedId);
+      const targetIdx = sorted.findIndex(t => t.id === targetId);
+      if (dragIdx < 0 || targetIdx < 0) return;
+
+      const [moved] = sorted.splice(dragIdx, 1);
+      sorted.splice(targetIdx, 0, moved);
+
+      const reorderBody = sorted.map((t, i) => ({ id: t.id, sort_order: i }));
+      await fetch(API + '/tasks/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reorderBody),
+      });
+      await loadTasks();
+    });
+
+    const nameEl = row.querySelector('.task-name-edit');
+    nameEl.addEventListener('blur', async () => {
+      const newName = nameEl.textContent.trim();
+      if (newName && newName !== task.name) {
+        await apiPut(`/tasks/${task.id}`, { name: newName });
+        await loadTasks();
+      } else {
+        nameEl.textContent = task.name;
+      }
+    });
+    nameEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        nameEl.blur();
+      }
+    });
+
+    row.querySelectorAll('.cooldown-btns button').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const days = parseInt(btn.dataset.days);
+        await apiPut(`/tasks/${task.id}`, { cooldown_days: days });
+        await loadTasks();
+      });
+    });
+
+    // Reset cooldown button
+    row.querySelector('.reset-btn').addEventListener('click', async () => {
+      await apiPost(`/tasks/${task.id}/reset-cooldown`);
+      await loadTasks();
+    });
+
+    row.querySelector('.toggle-active').addEventListener('change', async (e) => {
+      await apiPut(`/tasks/${task.id}`, { active: e.target.checked });
+      await loadTasks();
+    });
+
+    row.querySelector('.delete-btn').addEventListener('click', async () => {
+      if (confirm(`Poistetaanko "${task.name}"?`)) {
+        await apiDelete(`/tasks/${task.id}`);
+        await loadTasks();
+      }
+    });
+
+    list.appendChild(row);
+  });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// --- Add task ---
+const addInput = document.getElementById('new-task-input');
+const addBtn = document.getElementById('add-task-btn');
+
+async function addTask() {
+  const name = addInput.value.trim();
+  if (!name) return;
+  await apiPost('/tasks', { name, cooldown_days: 1 });
+  addInput.value = '';
+  await loadTasks();
+}
+
+addBtn.addEventListener('click', addTask);
+addInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+});
+
+// --- Load tasks on start ---
+loadTasks();
+
+// --- Recharge skips (reset localStorage counter) ---
+const rechargeBtn = document.getElementById('recharge-btn');
+const rechargeFeedback = document.getElementById('recharge-feedback');
+
+rechargeBtn.addEventListener('click', () => {
+  const SKIP_KEY = 'taskpicker_skips';
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(SKIP_KEY, JSON.stringify({ date: today, used: 0 }));
+  rechargeFeedback.classList.add('visible');
+  setTimeout(() => rechargeFeedback.classList.remove('visible'), 2000);
+});
+</script>
+</body>
+</html>

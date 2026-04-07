@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mitä tänään tekisi?</title>
+<style>
+:root {
+  --bg: #080808;
+  --surface: #16213e;
+  --card: #0f3460;
+  --accent: #e94560;
+  --accent2: #f5a623;
+  --text: #eaeaea;
+  --muted: #7a7a9d;
+  --success: #4ecca3;
+  --radius: 14px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* TubesCursor canvas */
+#cursor-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Shape wave canvas (always visible, transparent bg) */
+#shape-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Main center container */
+#center-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+h1 {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  font-size: 2.5rem;
+  color: #fff;
+  text-align: center;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ====== GLASS BUTTON BASE ====== */
+.glass-btn {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  color: #fff;
+  border: 1.5px solid transparent;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(30px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 1.5px;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(138, 43, 226, 0.4) 25%,
+    rgba(0, 191, 255, 0.4) 50%,
+    rgba(255, 105, 180, 0.4) 75%,
+    rgba(255, 255, 255, 0.4) 100%);
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderFlow 3s linear infinite;
+  opacity: 0.6;
+  transition: opacity 0.5s ease;
+}
+.glass-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 50%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.glass-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  transform: translateY(-2px) scale(1.02);
+}
+.glass-btn:hover::before { opacity: 1; animation-duration: 2s; }
+.glass-btn:hover::after { opacity: 1; }
+.glass-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.glass-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+.glass-btn .btn-icon { order: 1; }
+.glass-btn span,
+.glass-btn .btn-text { position: relative; z-index: 1; }
+
+/* ====== MAIN PICK BUTTON ====== */
+#pick-btn {
+  font-size: 1.8rem;
+  font-weight: 700;
+  width: 80vw;
+  max-width: 500px;
+  min-height: 120px;
+  z-index: 2;
+  flex-direction: column;
+  text-align: center;
+  line-height: 1.2;
+  padding: 20px 30px;
+  gap: 6px;
+}
+
+/* Shimmer sweep on pick button */
+#pick-btn .shimmer {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 100%
+  );
+  transform: rotate(30deg);
+  animation: shimmerSweep 3s infinite;
+  pointer-events: none;
+}
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%) rotate(30deg); }
+  100% { transform: translateX(100%) rotate(30deg); }
+}
+
+#pick-btn:hover {
+  box-shadow:
+    0 12px 48px rgba(138, 43, 226, 0.3),
+    0 0 80px rgba(0, 191, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+#pick-btn:active {
+  box-shadow:
+    0 6px 24px rgba(138, 43, 226, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Result state */
+#pick-btn.showing-result {
+  cursor: default;
+  transform: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
+}
+#pick-btn.showing-result:hover {
+  transform: none;
+  box-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
+}
+#pick-btn.showing-result::before { display: none; }
+
+/* Text elements inside button */
+#btn-text {
+  display: inline;
+  font-size: 1.8rem;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+#count-text {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #fff;
+  opacity: 1;
+  position: relative;
+  z-index: 1;
+}
+
+#task-name {
+  display: none;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+#pick-btn.showing-result #btn-text { display: none; }
+#pick-btn.showing-result #count-text { display: none; }
+#pick-btn.showing-result #task-name { display: block; }
+
+/* No-tasks state (button area replacement) */
+#no-tasks-state {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+#no-tasks-state.visible { display: flex; }
+
+#no-tasks-state .nt-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+#no-tasks-state .nt-sub {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #fff;
+  opacity: 1;
+}
+
+/* Action buttons row (Tehty + Ohita) */
+#action-buttons {
+  display: none;
+  position: fixed;
+  top: calc(50vh + 100px);
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 12px;
+  z-index: 3;
+}
+#action-buttons.visible { display: flex; }
+
+#done-btn {
+  font-size: 1.3rem;
+  padding: 16px 48px;
+}
+/* Green accent border for done-btn */
+#done-btn::before {
+  background: linear-gradient(135deg,
+    rgba(78, 204, 163, 0.6) 0%,
+    rgba(78, 204, 163, 0.3) 50%,
+    rgba(78, 204, 163, 0.6) 100%);
+  background-size: 200% 200%;
+}
+#done-btn:hover {
+  box-shadow:
+    0 12px 48px rgba(78, 204, 163, 0.3),
+    0 0 60px rgba(78, 204, 163, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+
+#skip-btn {
+  font-size: 1.3rem;
+  padding: 16px 32px;
+}
+/* Red accent border for skip-btn */
+#skip-btn::before {
+  background: linear-gradient(135deg,
+    rgba(233, 69, 96, 0.6) 0%,
+    rgba(233, 69, 96, 0.3) 50%,
+    rgba(233, 69, 96, 0.6) 100%);
+  background-size: 200% 200%;
+}
+#skip-btn:hover {
+  box-shadow:
+    0 12px 48px rgba(233, 69, 96, 0.3),
+    0 0 60px rgba(233, 69, 96, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+#skip-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+#skip-btn:disabled::before {
+  background: linear-gradient(135deg,
+    rgba(122, 122, 157, 0.4) 0%,
+    rgba(122, 122, 157, 0.2) 50%,
+    rgba(122, 122, 157, 0.4) 100%);
+}
+
+/* Floating task name animation */
+.floating-task {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  color: #c9c9c9;
+  font-size: clamp(1rem, 2.5vw, 1.6rem);
+  font-weight: 500;
+  opacity: 0;
+  transform: scale(0.7);
+  animation: float-in-out 2s ease-in-out forwards;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 8px rgba(122, 122, 157, 0.3);
+}
+
+@keyframes float-in-out {
+  0%   { opacity: 0; transform: scale(0.7); }
+  35%  { opacity: 0.85; transform: scale(1.0); }
+  65%  { opacity: 0.85; transform: scale(1.0); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+
+/* Suggestion input area */
+#suggest-area {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-block;
+}
+#suggest-area::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 1.5px;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(138, 43, 226, 0.3) 25%,
+    rgba(0, 191, 255, 0.3) 50%,
+    rgba(255, 105, 180, 0.3) 75%,
+    rgba(255, 255, 255, 0.3) 100%);
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderFlow 3s linear infinite;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+#suggest-area:focus-within::before {
+  opacity: 0.8;
+  animation-duration: 2s;
+}
+
+#suggest-input {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  color: #fff;
+  border: 1.5px solid transparent;
+  border-radius: 9999px;
+  font-size: 1.5rem;
+  padding: 14px 36px;
+  outline: none;
+  width: 300px;
+  transition: background 0.3s, box-shadow 0.3s;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+#suggest-input::placeholder { color: #fff; }
+#suggest-input:focus {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Suggestion feedback popup (glass button style) */
+#suggest-feedback {
+  display: none;
+  position: fixed;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  z-index: 10;
+  padding: 20px 48px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(78, 204, 163, 0.12) 0%, rgba(78, 204, 163, 0.04) 100%);
+  border: 1.5px solid transparent;
+  backdrop-filter: blur(30px);
+  box-shadow:
+    0 12px 48px rgba(78, 204, 163, 0.25),
+    0 0 80px rgba(78, 204, 163, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+#suggest-feedback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  padding: 1.5px;
+  background: linear-gradient(135deg,
+    rgba(78, 204, 163, 0.7) 0%,
+    rgba(78, 204, 163, 0.3) 50%,
+    rgba(78, 204, 163, 0.7) 100%);
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: borderFlow 3s linear infinite;
+  opacity: 0.8;
+  pointer-events: none;
+}
+#suggest-feedback .feedback-text {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+#suggest-feedback.visible {
+  display: block;
+  animation: feedbackPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes feedbackPop {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.9); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1.0); }
+}
+#suggest-feedback.fade-out {
+  animation: feedbackFade 0.3s ease forwards;
+}
+@keyframes feedbackFade {
+  0%   { opacity: 1; transform: translateX(-50%) scale(1.0); }
+  100% { opacity: 0; transform: translateX(-50%) scale(0.95); }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.6rem; top: 50px; }
+  #pick-btn { font-size: 1.3rem; min-height: 100px; width: 85vw; }
+  #btn-text { font-size: 1.5rem; }
+  #task-name { font-size: 1.5rem; }
+  #no-tasks-state .nt-title { font-size: 1.5rem; }
+  #done-btn { font-size: 1.1rem; padding: 12px 32px; }
+  #skip-btn { font-size: 1.1rem; padding: 12px 20px; }
+  #suggest-input { width: 220px; font-size: 1.1rem; padding: 10px 24px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="cursor-canvas"></canvas>
+<canvas id="shape-canvas"></canvas>
+
+<h1>Mitä tänään tekisi?</h1>
+
+<div id="center-container">
+  <button id="pick-btn" class="glass-btn">
+    <span class="shimmer"></span>
+    <span id="btn-text">Arvo tehtävä!</span>
+    <span id="count-text"></span>
+    <span id="task-name"></span>
+  </button>
+  <div id="no-tasks-state">
+    <span class="nt-title">Kaikki tehtävät tehty</span>
+    <span class="nt-sub">lisää tulossa huomenna</span>
+  </div>
+</div>
+
+<div id="action-buttons">
+  <button id="done-btn" class="glass-btn">Tehty! <span class="btn-icon">✓</span></button>
+  <button id="skip-btn" class="glass-btn" disabled>Ohita <span id="skip-count">3</span>/3 <span class="btn-icon">⏭</span></button>
+</div>
+
+<!-- Suggestion input -->
+<div id="suggest-area">
+  <input type="text" id="suggest-input" placeholder="Ehdota tehtävää..." maxlength="60" />
+</div>
+<div id="suggest-feedback"><span class="feedback-text">✓ Tehtävä ehdotettu!</span></div>
+
+<script type="module">
+import TubesCursor from 'https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js';
+
+const API = '/api';
+let availableCount = 0;
+let showingResult = false;
+let activeTaskNames = [];
+
+// ===== SKIP SYSTEM =====
+const SKIP_KEY = 'taskpicker_skips';
+
+function getSkipData() {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const raw = localStorage.getItem(SKIP_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.date === today) return data;
+    }
+  } catch(e) {}
+  return { date: today, used: 0 };
+}
+
+function saveSkipData(data) {
+  try { localStorage.setItem(SKIP_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function getSkipsRemaining() {
+  return Math.max(0, 3 - getSkipData().used);
+}
+
+function useSkip() {
+  const data = getSkipData();
+  if (data.used >= 3) return false;
+  data.used++;
+  saveSkipData(data);
+  return true;
+}
+
+function updateSkipButton() {
+  const remaining = getSkipsRemaining();
+  const skipBtn = document.getElementById('skip-btn');
+  const skipCountEl = document.getElementById('skip-count');
+  skipCountEl.textContent = remaining;
+  skipBtn.disabled = remaining <= 0;
+}
+
+// ===== FETCH HELPERS =====
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  if (res.status === 204) return null;
+  return res.json();
+}
+async function apiPost(path, body) {
+  return fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+// ===== FLOATING TASK ANIMATION (5x5 grid) =====
+const SPAWN_COLS = [10, 30, 50, 70, 90];
+const SPAWN_ROWS = [12, 30, 50, 70, 88];
+const BLOCKED = [[2,2],[2,1],[2,3],[1,2],[3,2]];
+
+function isBlocked(colIdx, rowIdx) {
+  return BLOCKED.some(([r, c]) => r === rowIdx && c === colIdx);
+}
+
+function getRandomSpawnPoint() {
+  const colIdx = Math.floor(Math.random() * SPAWN_COLS.length);
+  const rowIdx = Math.floor(Math.random() * SPAWN_ROWS.length);
+  if (isBlocked(colIdx, rowIdx)) {
+    const colIdx2 = Math.floor(Math.random() * SPAWN_COLS.length);
+    const rowIdx2 = Math.floor(Math.random() * SPAWN_ROWS.length);
+    if (!isBlocked(colIdx2, rowIdx2)) return { x: SPAWN_COLS[colIdx2], y: SPAWN_ROWS[rowIdx2] };
+  }
+  return { x: SPAWN_COLS[colIdx], y: SPAWN_ROWS[rowIdx] };
+}
+
+function spawnFloatingTask(name) {
+  const el = document.createElement('div');
+  el.className = 'floating-task';
+  el.textContent = name;
+  const point = getRandomSpawnPoint();
+  const offsetX = (Math.random() - 0.5) * 6;
+  const offsetY = (Math.random() - 0.5) * 4;
+  const rotation = (Math.random() - 0.5) * 12;
+  el.style.left = `calc(${point.x}vw + ${offsetX}vw)`;
+  el.style.top = `calc(${point.y}vh + ${offsetY}vh)`;
+  el.style.transform = `scale(0.7) rotate(${rotation}deg)`;
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 3000);
+}
+
+let animationInterval = null;
+
+async function loadTaskNames() {
+  const data = await apiGet('/tasks/active/names');
+  if (data && data.names) activeTaskNames = data.names;
+}
+
+function startFloatingAnimations() {
+  if (animationInterval) clearInterval(animationInterval);
+  setTimeout(() => {
+    if (activeTaskNames.length > 0) spawnFloatingTask(activeTaskNames[Math.floor(Math.random() * activeTaskNames.length)]);
+  }, 2000);
+  animationInterval = setInterval(() => {
+    if (activeTaskNames.length > 0) spawnFloatingTask(activeTaskNames[Math.floor(Math.random() * activeTaskNames.length)]);
+  }, 7000);
+}
+
+// ===== LOAD COUNT =====
+async function loadCount() {
+  const data = await apiGet('/tasks/available/count');
+  if (data) { availableCount = data.count; updateCountDisplay(); }
+}
+
+function updateCountDisplay() {
+  document.getElementById('count-text').textContent = `${availableCount} jäljellä`;
+}
+
+// ===== PICK RANDOM =====
+const pickBtn = document.getElementById('pick-btn');
+const taskNameEl = document.getElementById('task-name');
+const actionButtons = document.getElementById('action-buttons');
+const doneBtn = document.getElementById('done-btn');
+const skipBtn = document.getElementById('skip-btn');
+const noTasksState = document.getElementById('no-tasks-state');
+
+pickBtn.addEventListener('click', async () => {
+  if (showingResult) return;
+  pickBtn.disabled = true;
+  const res = await fetch(API + '/tasks/random');
+  pickBtn.disabled = false;
+  if (res.status === 204) {
+    noTasksState.classList.add('visible');
+    pickBtn.style.display = 'none';
+    return;
+  }
+  noTasksState.classList.remove('visible');
+  pickBtn.style.display = '';
+  const task = await res.json();
+  taskNameEl.textContent = task.name;
+  pickBtn.dataset.taskId = task.id;
+  pickBtn.classList.add('showing-result');
+  actionButtons.classList.add('visible');
+  showingResult = true;
+  availableCount = Math.max(0, availableCount - 1);
+  updateCountDisplay();
+});
+
+doneBtn.addEventListener('click', async () => {
+  const id = pickBtn.dataset.taskId;
+  if (!id) return;
+  await apiPost(`/tasks/${id}/done`);
+  pickBtn.classList.remove('showing-result');
+  taskNameEl.textContent = '';
+  pickBtn.dataset.taskId = '';
+  actionButtons.classList.remove('visible');
+  showingResult = false;
+  await loadCount();
+});
+
+skipBtn.addEventListener('click', async () => {
+  if (!useSkip()) return;
+  const id = pickBtn.dataset.taskId;
+  if (id) await apiPost(`/tasks/${id}/done`);
+  pickBtn.classList.remove('showing-result');
+  taskNameEl.textContent = '';
+  pickBtn.dataset.taskId = '';
+  actionButtons.classList.remove('visible');
+  showingResult = false;
+  updateSkipButton();
+  await loadCount();
+});
+
+// ===== TASK SUGGESTION (Enter only) =====
+const suggestInput = document.getElementById('suggest-input');
+const suggestFeedback = document.getElementById('suggest-feedback');
+
+async function submitSuggestion() {
+  const name = suggestInput.value.trim();
+  if (!name) return;
+  suggestInput.disabled = true;
+  await apiPost('/tasks/suggest', { name });
+  suggestInput.value = '';
+  suggestInput.disabled = false;
+
+  // Show feedback popup
+  suggestFeedback.classList.remove('fade-out');
+  suggestFeedback.classList.add('visible');
+
+  // Trigger shape wave from feedback popup position
+  const rect = suggestFeedback.getBoundingClientRect();
+  triggerShapeWave(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+  // Fade out after delay
+  setTimeout(() => {
+    suggestFeedback.classList.remove('visible');
+    suggestFeedback.classList.add('fade-out');
+    setTimeout(() => suggestFeedback.classList.remove('fade-out'), 400);
+  }, 2000);
+}
+
+suggestInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitSuggestion();
+});
+
+// ===== TUBESCURSOR =====
+const cursorCanvas = document.getElementById('cursor-canvas');
+function resizeCursorCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cursorCanvas.width = window.innerWidth * dpr;
+  cursorCanvas.height = window.innerHeight * dpr;
+  cursorCanvas.style.width = window.innerWidth + 'px';
+  cursorCanvas.style.height = window.innerHeight + 'px';
+}
+resizeCursorCanvas();
+window.addEventListener('resize', resizeCursorCanvas);
+
+const tubesApp = TubesCursor(cursorCanvas, {
+  tubes: {
+    colors: ['#f967fb', '#53bc28', '#6958d5'],
+    lights: { intensity: 200, colors: ['#83f36e', '#fe8a2e', '#ff008a', '#60aed5'] }
+  }
+});
+
+// ===== SHAPE WAVE (wave-only, no mouse-follow) =====
+const shapeCanvas = document.getElementById('shape-canvas');
+const shapeCtx = shapeCanvas.getContext('2d');
+
+var gap = 40;
+var radiusVmin = 30;
+var speedIn = 0.5;
+var speedOut = 0.6;
+var restScale = 0.18;
+var waveSpeed = 1200;
+var waveWidth = 180;
+var minHoverScale = 1;
+var maxHoverScale = 3;
+
+var PALETTE = [
+  { type: 'solid', value: '#22c55e' },
+  { type: 'solid', value: '#06b6d4' },
+  { type: 'solid', value: '#f97316' },
+  { type: 'solid', value: '#ef4444' },
+  { type: 'solid', value: '#facc15' },
+  { type: 'solid', value: '#ec4899' },
+  { type: 'solid', value: '#9ca3af' },
+  { type: 'solid', value: '#a78bfa' },
+  { type: 'solid', value: '#60a5fa' },
+  { type: 'solid', value: '#34d399' },
+  { type: 'gradient', stops: ['#6366f1', '#3b82f6'] },
+  { type: 'gradient', stops: ['#06b6d4', '#6366f1'] },
+  { type: 'gradient', stops: ['#22c55e', '#06b6d4'] },
+  { type: 'gradient', stops: ['#f97316', '#ef4444'] },
+  { type: 'gradient', stops: ['#8b5cf6', '#06b6d4'] },
+  { type: 'gradient', stops: ['#3b82f6', '#8b5cf6'] },
+  { type: 'gradient', stops: ['#34d399', '#3b82f6'] },
+];
+
+var SHAPE_TYPES = ['circle', 'pill', 'star', 'star'];
+
+var shapeGrid = null;
+var shapeRafId = null;
+var shapeWaves = [];
+var shapeFrameCount = 0;
+var maskOverride = false;
+var globalOpacity = 0.2;
+var targetOpacity = 0.2;
+var OPACITY_SPEED = 0.025;
+
+function shapeRnd(min, max) { return Math.random() * (max - min) + min; }
+function shapeRndInt(min, max) { return Math.floor(shapeRnd(min, max + 1)); }
+function shapePick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function smoothstep(t) {
+  var c = Math.max(0, Math.min(1, t));
+  return c * c * (3 - 2 * c);
+}
+
+function durationToFactor(seconds) {
+  if (seconds <= 0) return 1;
+  return 1 - Math.pow(0.05, 1 / (60 * seconds));
+}
+
+function drawCircle(ctx, size) {
+  ctx.beginPath();
+  ctx.arc(0, 0, size, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawPill(ctx, size) {
+  var w = size * 0.48;
+  var h = size;
+  ctx.beginPath();
+  ctx.roundRect(-w, -h, w * 2, h * 2, w);
+  ctx.fill();
+}
+
+function drawStar(ctx, size, points, innerRatio) {
+  ctx.beginPath();
+  for (var i = 0; i < points * 2; i++) {
+    var angle = (i * Math.PI) / points - Math.PI / 2;
+    var r = i % 2 === 0 ? size : size * innerRatio;
+    var x = Math.cos(angle) * r;
+    var y = Math.sin(angle) * r;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawShape(ctx, shape) {
+  switch (shape.type) {
+    case 'circle': return drawCircle(ctx, shape.size / 1.5);
+    case 'pill':   return drawPill(ctx, shape.size / 1.4);
+    case 'star':   return drawStar(ctx, shape.size, shape.points, shape.innerRatio);
+  }
+}
+
+function resolveFill(ctx, colorDef, size) {
+  if (colorDef.type === 'solid') return colorDef.value;
+  var grad = ctx.createRadialGradient(0, -size * 0.3, 0, 0, size * 0.3, size * 1.5);
+  grad.addColorStop(0, colorDef.stops[0]);
+  grad.addColorStop(1, colorDef.stops[1]);
+  return grad;
+}
+
+function randomStarProps() {
+  return { points: shapeRndInt(4, 10), innerRatio: shapeRnd(0.1, 0.5) };
+}
+
+function buildShapeGrid() {
+  var W = window.innerWidth;
+  var H = window.innerHeight;
+  var cols = Math.floor(W / gap);
+  var rows = Math.floor(H / gap);
+  var offsetX = (W - (cols - 1) * gap) / 2;
+  var offsetY = (H - (rows - 1) * gap) / 2;
+  var shapes = [];
+  for (var row = 0; row < rows; row++) {
+    for (var col = 0; col < cols; col++) {
+      var type = shapePick(SHAPE_TYPES);
+      var shape = {
+        x: offsetX + col * gap,
+        y: offsetY + row * gap,
+        type: type,
+        color: shapePick(PALETTE),
+        angle: shapeRnd(0, Math.PI * 2),
+        size: gap * 0.38,
+        scale: restScale,
+        maxScale: shapeRnd(minHoverScale, maxHoverScale),
+      };
+      if (type === 'star') Object.assign(shape, randomStarProps());
+      shapes.push(shape);
+    }
+  }
+  return { shapes: shapes, width: W, height: H };
+}
+
+function initShapeWave() {
+  var W = window.innerWidth;
+  var H = window.innerHeight;
+  var dpr = window.devicePixelRatio || 1;
+  shapeCanvas.width = W * dpr;
+  shapeCanvas.height = H * dpr;
+  shapeCanvas.style.width = W + 'px';
+  shapeCanvas.style.height = H + 'px';
+  shapeCtx.setTransform(1, 0, 0, 1, 0, 0);
+  shapeCtx.scale(dpr, dpr);
+  shapeGrid = buildShapeGrid();
+}
+
+function shapeTick() {
+  if (!shapeGrid) { shapeRafId = requestAnimationFrame(shapeTick); return; }
+
+  var shapes = shapeGrid.shapes;
+  var width = shapeGrid.width;
+  var height = shapeGrid.height;
+  var now = performance.now();
+
+  // Lerp global opacity toward target (~2s ease)
+  globalOpacity += (targetOpacity - globalOpacity) * OPACITY_SPEED;
+  if (Math.abs(globalOpacity - targetOpacity) < 0.005) globalOpacity = targetOpacity;
+
+  shapeCtx.clearRect(0, 0, width, height);
+
+  var maxDist = Math.sqrt(width * width + height * height);
+  shapeWaves = shapeWaves.filter(function(w) {
+    return (now - w.startTime) / 1000 * waveSpeed < maxDist + waveWidth;
+  });
+
+  for (var i = 0; i < shapes.length; i++) {
+    var shape = shapes[i];
+
+    // No pointer influence — wave only
+    var waveInfluence = 0;
+    for (var j = 0; j < shapeWaves.length; j++) {
+      var wave = shapeWaves[j];
+      var waveRadius = (now - wave.startTime) / 1000 * waveSpeed;
+      var wdx = shape.x - wave.x;
+      var wdy = shape.y - wave.y;
+      var wdist = Math.sqrt(wdx * wdx + wdy * wdy);
+      var t = 1 - Math.abs(wdist - waveRadius) / waveWidth;
+      if (t > 0) waveInfluence = Math.max(waveInfluence, Math.sin(Math.PI * t));
+    }
+
+    // When maskOverride is true (wave active), only wave influence
+    if (maskOverride) {
+      var waveTarget = restScale + waveInfluence * (shape.maxScale - restScale);
+      var factor = waveTarget > shape.scale ? durationToFactor(speedIn) : durationToFactor(speedOut);
+      shape.scale += (waveTarget - shape.scale) * factor;
+    } else {
+      // Idle: stay at restScale
+      shape.scale += (restScale - shape.scale) * durationToFactor(speedOut);
+    }
+
+    if (shape.scale < restScale * 0.15) continue;
+
+    shapeCtx.save();
+    shapeCtx.globalAlpha = globalOpacity;
+    shapeCtx.translate(shape.x, shape.y);
+    shapeCtx.rotate(shape.angle);
+    shapeCtx.scale(shape.scale, shape.scale);
+    shapeCtx.fillStyle = resolveFill(shapeCtx, shape.color, shape.size);
+    drawShape(shapeCtx, shape);
+    shapeCtx.restore();
+  }
+
+  shapeRafId = requestAnimationFrame(shapeTick);
+}
+
+function triggerShapeWave(x, y) {
+  shapeWaves.push({ x: x, y: y, startTime: performance.now() });
+  targetOpacity = 1.0;
+  maskOverride = true;
+  var delay = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight) / waveSpeed;
+  setTimeout(function() { maskOverride = false; }, delay * 1000 + 500);
+  setTimeout(function() { targetOpacity = 0.2; }, delay * 1000 + 800);
+}
+
+initShapeWave();
+shapeRafId = requestAnimationFrame(shapeTick);
+window.addEventListener('resize', initShapeWave);
+
+// Trigger wave on button press
+const origPickHandler = pickBtn.onclick;
+pickBtn.addEventListener('click', function(e) {
+  triggerShapeWave(window.innerWidth / 2, window.innerHeight / 2);
+});
+
+// ===== INIT =====
+loadCount();
+loadTaskNames();
+startFloatingAnimations();
+updateSkipButton();
+</script>
+</body>
+</html>

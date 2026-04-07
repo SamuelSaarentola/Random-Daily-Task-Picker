@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8338:8000"
+    volumes:
+      - taskdata:/data
+    restart: unless-stopped
+
+volumes:
+  taskdata:
