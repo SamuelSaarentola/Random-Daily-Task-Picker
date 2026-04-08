@@ -29,7 +29,7 @@ http://localhost:8338
 The pre-built image is published to GitHub Container Registry via GitHub Actions on every push to the `main` branch:
 
 ```yaml
-image: ghcr.io/YOUR_USERNAME/task-picker:latest
+image: ghcr.io/samuelsaarentola/random-daily-task-picker:latest
 ```
 
 To enable this for public use:

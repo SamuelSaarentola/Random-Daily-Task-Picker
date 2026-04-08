@@ -1,11 +1,11 @@
 services:
   app:
     # Option 1: Use pre-built image (easiest)
-    # image: ghcr.io/YOUR_USERNAME/task-picker:latest
+    image: ghcr.io/samuelsaarentola/random-daily-task-picker:latest
     # Uncomment the line above and comment out "build: ." to use a pre-built image
 
     # Option 2: Build from source
-    build: .
+    #build: .
 
     ports:
       - "8338:8000"
